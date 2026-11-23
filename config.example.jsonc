@@ -1,0 +1,15 @@
+{
+  // thoth-ddd plugin configuration (JSONC).
+  // Copy this file to ~/.config/opencode/thoth-ddd.jsonc to override the
+  // model used by the Thoth — DDD Domain Scribe agent.
+  //
+  // If the file is missing, the plugin uses its built-in default model.
+  //
+  // Only the model override is supported. There is no agent_order key.
+  "agents": {
+    "thoth-domain-scribe": {
+      // Swap in any model you want Thoth to use, e.g. "opencode/big-pickle".
+      "model": "opencode/big-pickle"
+    }
+  }
+}

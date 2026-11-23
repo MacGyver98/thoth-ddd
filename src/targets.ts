@@ -1,0 +1,422 @@
+/**
+ * Pure renderers: canonical bundle -> per-tool file sets.
+ *
+ * No I/O, no global state. Every renderer returns an array of
+ * `{ path, content }` so it can be tested without touching a disk.
+ */
+import { homedir } from "node:os";
+import { join } from "node:path";
+import {
+  frontmatterValue,
+  type CanonicalBundle,
+  type FrontmatterDoc,
+} from "./canonical.js";
+
+export const TOOL_IDS = [
+  "opencode",
+  "claude-code",
+  "antigravity",
+  "codex",
+  "gemini-cli",
+  "copilot",
+  "cursor",
+] as const;
+export type ToolId = (typeof TOOL_IDS)[number];
+export type Scope = "project" | "global";
+
+export const TOOL_LABEL: Record<ToolId, string> = {
+  opencode: "OpenCode",
+  "claude-code": "Claude Code",
+  antigravity: "Google Antigravity",
+  codex: "OpenAI Codex",
+  "gemini-cli": "Gemini CLI",
+  copilot: "GitHub Copilot",
+  cursor: "Cursor",
+};
+
+export interface GeneratedFile {
+  path: string;
+  content: string;
+}
+
+export interface RenderOptions {
+  scope?: Scope;
+  /** Where the full prompt bundle is written. Defaults per scope. */
+  bundlePath?: string;
+}
+
+export const MANAGED_BEGIN = "<!-- thoth-ddd:begin -->";
+export const MANAGED_END = "<!-- thoth-ddd:end -->";
+
+/** Wrap instruction text in an idempotent, replaceable managed block. */
+export function managedBlock(text: string): string {
+  return `${MANAGED_BEGIN}\n${text.trim()}\n${MANAGED_END}\n`;
+}
+
+/** Quote a value for a YAML frontmatter scalar. */
+function yamlQ(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r?\n/g, " ")}"`;
+}
+
+function description(doc: FrontmatterDoc): string {
+  return (
+    frontmatterValue(doc.frontmatter, "description") ??
+    `Thoth DDD Domain Scribe (${doc.id})`
+  );
+}
+
+/** Resolve output locations for a render. */
+function resolvePaths(options: RenderOptions): {
+  scope: Scope;
+  bundlePath: string;
+} {
+  const scope = options.scope ?? "project";
+  const bundlePath =
+    options.bundlePath ??
+    (scope === "project"
+      ? join("documentation", "thoth-ddd")
+      : join(homedir(), ".config", "thoth-ddd", "bundle"));
+  return { scope, bundlePath };
+}
+
+/**
+ * Tool-portability preamble. The canonical prompt is authored for OpenCode;
+ * other tools get this short adapter prepended to the full prompt and to each
+ * gateway. It maps tool-specific calls to generic capabilities.
+ */
+export function adapterFor(tool: ToolId, bundlePath: string): string {
+  if (tool === "opencode") return "";
+
+  const bp = bundlePath.replace(/\\/g, "/");
+  return [
+    `## Tool adapter — ${TOOL_LABEL[tool]} (generated)`,
+    "",
+    `The canonical Thoth prompt was authored for OpenCode. Translate tool-specific calls as follows; never wait for a tool that does not exist in this environment.`,
+    "",
+    `- \`skill(name="opsx-<command>")\` → load that \`opsx-<command>\` skill/command using this tool's native mechanism. Sources: \`${bp}/commands/\` and \`${bp}/skills/\`.`,
+    `- \`subagent(agent="opsx-scribe", ...)\` → delegate to the \`opsx-scribe\` agent/profile when this tool supports subagents. Otherwise execute that role inline as a separate focused step and still emit its \`## RESULT\` block.`,
+    `- \`task(category="visual-engineering")\` / \`task(category="quick")\` → switch to an equivalent general-purpose agent if available; otherwise continue inline.`,
+    `- \`bash\`, \`grep\`, \`glob\` → the equivalent shell, search and file-discovery tools of this environment.`,
+    `- Frontmatter permissions are advisory here: still restrict Thoth edits to \`00-DDD/**\`, \`documentation/**\` and \`openspec/**\`, and \`opsx-scribe\` edits to \`openspec/**\`.`,
+    `- The mandatory target layout is defined in \`${bp}/LAYOUT.md\`.`,
+  ].join("\n");
+}
+
+/** Short instruction used when the full prompt cannot fit in the native slot. */
+function gatewayFor(tool: ToolId, bundlePath: string): string {
+  const bp = bundlePath.replace(/\\/g, "/");
+  const adapter = adapterFor(tool, bundlePath);
+  const loadLine =
+    tool === "gemini-cli"
+      ? `Load the full agent prompt by importing \`${bundlePath.startsWith("/") ? `@${bp}` : `@./${bp}`}/THOTH.md\`.`
+      : `Before any analysis, write, delegation or gate check, read \`${bp}/THOTH.md\` in full and follow it verbatim. Treat it as your complete system prompt.`;
+
+  return [
+    `You are **Thoth — DDD Domain Scribe**, installed by thoth-ddd.`,
+    "",
+    loadLine,
+    "",
+    `The SPEC executor is \`opsx-scribe\`; its prompt is at \`${bp}/OPSX-SCRIBE.md\`. All OpenSpec work must be delegated to it (or executed inline with the same scope limits when subagents are unavailable).`,
+    "",
+    adapter,
+  ].join("\n");
+}
+
+/** Read-only bundle that ships alongside every installation. */
+function bundleFiles(
+  bundle: CanonicalBundle,
+  bundlePath: string,
+  adapter: string,
+): GeneratedFile[] {
+  const p = (...parts: string[]) => join(bundlePath, ...parts);
+  const header = (source: string) =>
+    `<!-- Generated by thoth-ddd from ${source}. Do not edit by hand. -->`;
+
+  const files: GeneratedFile[] = [
+    {
+      path: p("THOTH.md"),
+      content: `${header("00-DDD/DDD-Agent.md")}\n\n${adapter ? adapter + "\n\n" : ""}${bundle.thoth.body}`,
+    },
+    {
+      path: p("OPSX-SCRIBE.md"),
+      content: `${header("00-DDD/agents/opsx-scribe.md")}\n\n${adapter ? adapter + "\n\n" : ""}${bundle.opsx.body}`,
+    },
+    {
+      path: p("LAYOUT.md"),
+      content: bundle.layout,
+    },
+    {
+      path: p("README.md"),
+      content: [
+        "# thoth-ddd generated bundle",
+        "",
+        "This directory is generated from the thoth-ddd canonical sources in `00-DDD/`.",
+        "Do not edit these files: changes are lost on the next `thoth-ddd install`.",
+        "",
+        "| File | Purpose |",
+        "| --- | --- |",
+        "| `THOTH.md` | Full Thoth system prompt |",
+        "| `OPSX-SCRIBE.md` | Full SPEC-executor sub-agent prompt |",
+        "| `commands/` | The five `opsx-*` commands |",
+        "| `skills/` | The four OpenSpec skills |",
+        "| `LAYOUT.md` | Mandatory target-repository layout contract |",
+      ].join("\n"),
+    },
+  ];
+
+  for (const command of bundle.commands) {
+    files.push({ path: p("commands", `${command.id}.md`), content: command.raw });
+  }
+  for (const skill of bundle.skills) {
+    files.push({ path: p("skills", skill.id, "SKILL.md"), content: skill.raw });
+  }
+  return files;
+}
+
+/** Frontmatter + body for Claude Code native agents. */
+function claudeAgent(doc: FrontmatterDoc, body: string, color: string): string {
+  return [
+    "---",
+    `name: ${doc.id}`,
+    `description: ${yamlQ(description(doc))}`,
+    "model: inherit",
+    `color: ${color}`,
+    "tools: Read, Write, Edit, Glob, Grep, Bash, Task, Skill",
+    "---",
+    "",
+    body,
+  ].join("\n");
+}
+
+/** Frontmatter + body for Google Antigravity native agents. */
+function antigravityAgent(
+  doc: FrontmatterDoc,
+  body: string,
+  mainAgent: boolean,
+): string {
+  return [
+    "---",
+    `name: ${doc.id}`,
+    `description: ${yamlQ(description(doc))}`,
+    "model: inherit",
+    `mainAgent: ${mainAgent}`,
+    "subagent: true",
+    "commandExecutionPolicy: sandbox",
+    "tools:",
+    "  - view_file",
+    "  - replace_file_content",
+    "  - grep_search",
+    "  - run_command",
+    "  - manage_task",
+    "---",
+    "",
+    body,
+  ].join("\n");
+}
+
+/** GitHub Copilot custom agent profile (prompt must stay under 30,000 chars). */
+function copilotAgent(doc: FrontmatterDoc, gateway: string): string {
+  return [
+    "---",
+    `name: ${doc.id}`,
+    `description: ${yamlQ(description(doc))}`,
+    'tools: ["*"]',
+    "include-custom-instructions: true",
+    "---",
+    "",
+    gateway,
+  ].join("\n");
+}
+
+/** Convert an OpenCode command into a portable Agent Skills SKILL.md. */
+function commandAsSkill(doc: FrontmatterDoc): string {
+  return [
+    "---",
+    `name: ${doc.id}`,
+    `description: ${yamlQ(description(doc))}`,
+    "---",
+    "",
+    doc.body.trim(),
+  ].join("\n");
+}
+
+/** Render the complete file set for one tool. */
+export function renderTarget(
+  tool: ToolId,
+  bundle: CanonicalBundle,
+  options: RenderOptions = {},
+): GeneratedFile[] {
+  const { bundlePath } = resolvePaths(options);
+  const adapter = adapterFor(tool, bundlePath);
+  const files = bundleFiles(bundle, bundlePath, adapter);
+
+  switch (tool) {
+    case "opencode": {
+      files.unshift(
+        { path: ".opencode/agents/thoth-domain-scribe.md", content: bundle.thoth.raw },
+        { path: ".opencode/agents/opsx-scribe.md", content: bundle.opsx.raw },
+      );
+      for (const command of bundle.commands) {
+        files.push({
+          path: `.opencode/commands/${command.id}.md`,
+          content: command.raw,
+        });
+      }
+      for (const skill of bundle.skills) {
+        files.push({
+          path: `.opencode/skills/${skill.id}/SKILL.md`,
+          content: skill.raw,
+        });
+      }
+      break;
+    }
+
+    case "claude-code": {
+      files.unshift(
+        {
+          path: ".claude/agents/thoth-domain-scribe.md",
+          content: claudeAgent(bundle.thoth, adapter + "\n\n" + bundle.thoth.body, "yellow"),
+        },
+        {
+          path: ".claude/agents/opsx-scribe.md",
+          content: claudeAgent(bundle.opsx, adapter + "\n\n" + bundle.opsx.body, "purple"),
+        },
+      );
+      for (const command of bundle.commands) {
+        files.push({
+          path: `.claude/commands/${command.id}.md`,
+          content: command.raw,
+        });
+      }
+      for (const skill of bundle.skills) {
+        files.push({
+          path: `.claude/skills/${skill.id}/SKILL.md`,
+          content: skill.raw,
+        });
+      }
+      break;
+    }
+
+    case "antigravity": {
+      files.unshift(
+        {
+          path: ".agents/agents/thoth-domain-scribe.md",
+          content: antigravityAgent(
+            bundle.thoth,
+            adapter + "\n\n" + bundle.thoth.body,
+            true,
+          ),
+        },
+        {
+          path: ".agents/agents/opsx-scribe.md",
+          content: antigravityAgent(
+            bundle.opsx,
+            adapter + "\n\n" + bundle.opsx.body,
+            false,
+          ),
+        },
+        {
+          path: ".agents/rules/thoth-ddd-layout.md",
+          content: [
+            "---",
+            "trigger: model_decision",
+            `description: ${yamlQ("Mandatory repository layout and write-scope rules for the Thoth DDD agent. Use when creating DDD, ADR or OpenSpec artifacts.")}`,
+            "---",
+            "",
+            bundle.layout,
+          ].join("\n"),
+        },
+      );
+      for (const command of bundle.commands) {
+        files.push({
+          path: `.agents/skills/${command.id}/SKILL.md`,
+          content: commandAsSkill(command),
+        });
+      }
+      for (const skill of bundle.skills) {
+        files.push({
+          path: `.agents/skills/${skill.id}/SKILL.md`,
+          content: skill.raw,
+        });
+      }
+      break;
+    }
+
+    case "codex": {
+      files.unshift({
+        path: "AGENTS.md",
+        content: [
+          "# Project instructions",
+          "",
+          managedBlock(gatewayFor("codex", bundlePath)),
+        ].join("\n"),
+      });
+      for (const skill of bundle.skills) {
+        files.push({
+          path: `.agents/skills/${skill.id}/SKILL.md`,
+          content: skill.raw,
+        });
+      }
+      break;
+    }
+
+    case "gemini-cli": {
+      files.unshift({
+        path: "GEMINI.md",
+        content: [
+          "# Project context",
+          "",
+          managedBlock(gatewayFor("gemini-cli", bundlePath)),
+        ].join("\n"),
+      });
+      break;
+    }
+
+    case "copilot": {
+      const gateway = gatewayFor("copilot", bundlePath);
+      files.unshift(
+        {
+          path: ".github/agents/thoth-domain-scribe.agent.md",
+          content: copilotAgent(bundle.thoth, gateway),
+        },
+        {
+          path: ".github/agents/opsx-scribe.agent.md",
+          content: [
+            "---",
+            'name: "opsx-scribe"',
+            `description: ${yamlQ(description(bundle.opsx))}`,
+            'tools: ["*"]',
+            "include-custom-instructions: true",
+            "---",
+            "",
+            `You are the SPEC executor. Before acting, read \`${bundlePath.replace(/\\/g, "/")}/OPSX-SCRIBE.md\` in full and follow it verbatim.`,
+            "",
+            adapter,
+          ].join("\n"),
+        },
+        {
+          path: ".github/copilot-instructions.md",
+          content: ["# Repository instructions", "", managedBlock(gateway)].join("\n"),
+        },
+      );
+      break;
+    }
+
+    case "cursor": {
+      files.unshift({
+        path: ".cursor/rules/thoth-ddd.mdc",
+        content: [
+          "---",
+          `description: ${yamlQ("Thoth — DDD Domain Scribe. Use for DDD design, ADR governance, ubiquitous language, aggregates and OpenSpec change work.")}`,
+          "alwaysApply: false",
+          "---",
+          "",
+          gatewayFor("cursor", bundlePath),
+        ].join("\n"),
+      });
+      break;
+    }
+  }
+
+  return files;
+}

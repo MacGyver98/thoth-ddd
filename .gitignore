@@ -3,3 +3,4 @@ dist/
 .env*
 .omo/
 .opencode/node_modules/
+generated/

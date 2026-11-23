@@ -4,12 +4,25 @@
   "type": "module",
   "main": "./dist/index.js",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./cli": "./dist/cli.js"
   },
+  "bin": {
+    "thoth-ddd": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "00-DDD",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target node --format esm",
+    "build": "bun build src/index.ts src/cli.ts --outdir dist --target node --format esm",
     "typecheck": "tsc --noEmit",
-    "test": "bun test test/"
+    "test": "bun test test/",
+    "generate": "bun src/cli.ts generate",
+    "doctor": "bun src/cli.ts doctor"
   },
   "dependencies": {
     "@opencode-ai/plugin": "1.17.11"

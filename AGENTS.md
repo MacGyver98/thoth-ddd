@@ -1,12 +1,14 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-08-09 13:52:58 UTC
-**Branch:** none (not yet git-init'd)
-**Commit:** none
+**Updated:** 2026-11-22 (v3 — canonical source + multi-tool distribution)
+**Repo:** https://github.com/MacGyver98/thoth-ddd
 
 ## OVERVIEW
 
-OpenCode plugin **thoth-ddd** — ships one agent (**Thoth — DDD Domain Scribe**) that transforms free-form business descriptions into structured DDD artifacts (bounded contexts, ubiquitous language, aggregates, invariants, ADRs) via seven sequential tasks.
+**thoth-ddd** publishes one agent — **Thoth — DDD Domain Scribe** — to multiple coding
+tools from a single canonical source in `00-DDD/`. Thoth transforms a free-form business
+description into governed DDD artifacts (strategic/tactical models, ubiquitous language,
+aggregates, ADRs, OpenSpec changes and user journeys).
 
 **Stack:** TypeScript (ESM), bun build, `@opencode-ai/plugin` SDK, `node:test`
 
@@ -14,83 +16,103 @@ OpenCode plugin **thoth-ddd** — ships one agent (**Thoth — DDD Domain Scribe
 
 ```
 thoth-ddd/
-├── 00-DDD/              # Design docs (Spanish) — DDD agent prompt + naming decisions
-│   ├── DDD-Agent.md     # 7-task DDD agent prompt (source of truth for agent behavior)
-│   └── agent-naming.md  # Naming research → Thoth selected
-├── .omo/                # OpenCode planning artifacts
-│   ├── plans/           # Work plan for implementation
-│   ├── drafts/          # Draft versions
-│   └── run-continuation/
-├── src/                 # (planned) Plugin source — not yet created
-│   ├── index.ts         # PluginModule entry with merging config hook
-│   ├── agents/          # Thoth agent factory + prompt asset
-│   └── config.ts        # thoth-ddd.jsonc loader
-├── commands/            # (planned) /thoth:* command placeholders
-├── skills/              # (planned) Skill placeholders
-├── test/                # (planned) node:test unit suite
-├── dist/                # (planned) bun build output
-├── package.json         # (planned) name: thoth-ddd, ESM, exports: ./dist/index.js
-├── tsconfig.json        # (planned) NodeNext, strict, ES2022
-└── README.md            # (planned)
+├── 00-DDD/                      # CANONICAL SOURCE OF TRUTH (English v2)
+│   ├── DDD-Agent.md             # Thoth master prompt (44 KB, frontmatter + body)
+│   ├── LAYOUT.md                # Mandatory target-repo layout contract
+│   ├── agent-naming.md          # Naming research → Thoth selected
+│   ├── legacy/DDD-Agent.v1.es.md# Archived Spanish v1 (do not use)
+│   ├── agents/opsx-scribe.md    # SPEC executor sub-agent prompt
+│   ├── commands/opsx-*.md       # 5 canonical OpenSpec commands
+│   └── skills/openspec-*/SKILL.md # 4 canonical skills
+├── src/
+│   ├── index.ts                 # PluginModule: merging `config` hook
+│   ├── config.ts                # thoth-ddd.jsonc loader (model override)
+│   ├── canonical.ts             # canonical asset loader (read-only)
+│   ├── targets.ts               # pure renderers for all 7 tools
+│   ├── install.ts               # idempotent, managed-block-safe writer
+│   ├── cli.ts                   # generate | install | doctor | list
+│   ├── agents/thoth.ts          # agent definitions from canonical prompts
+│   └── types/assets.d.ts        # markdown import attributes
+├── test/                        # node:test suite
+├── docs/PLAN-v3.md              # Current work plan
+├── docs/TARGETS.md              # Per-tool installation reference
+├── generated/                   # gitignored sample output of all targets
+└── dist/                        # gitignored build output
 ```
 
 ## WHERE TO LOOK
 
 | Task | Location | Notes |
 |------|----------|-------|
-| Agent behavior definition | `00-DDD/DDD-Agent.md` | 7-task DDD workflow, Spanish |
-| Plugin naming/identity | `00-DDD/agent-naming.md` | Thoth — DDD Domain Scribe |
-| Implementation plan | `.omo/plans/thoth-ddd-plugin.md` | Full 10-todo work plan with acceptance criteria |
-| Plugin entry (when built) | `src/index.ts` | PluginModule default export |
-| Agent config (when built) | `src/agents/thoth.ts` | thothAgent() factory |
-| Config loader (when built) | `src/config.ts` | Reads `~/.config/opencode/thoth-ddd.jsonc` |
+| Agent behavior | `00-DDD/DDD-Agent.md` | English v2; imported from the working `~/.config/opencode` agent |
+| Layout contract | `00-DDD/LAYOUT.md` | Hardcoded paths adopters must provide |
+| SPEC executor | `00-DDD/agents/opsx-scribe.md` | Only agent allowed to touch `openspec/` |
+| Commands / skills | `00-DDD/commands/`, `00-DDD/skills/` | Canonical OpenSpec lifecycle assets |
+| Generator | `src/targets.ts` | No I/O; returns `{path, content}` per tool |
+| Installer | `src/install.ts` | Merge-safe, idempotent |
+| Plugin entry | `src/index.ts` | `PluginModule.server` with merging config hook |
+| Current plan | `docs/PLAN-v3.md` | Replaces the old `.omo/plans/thoth-ddd-plugin.md` |
 
 ## CODE MAP
 
-Greenfield — no source code exists yet. Design docs only.
-
 | Symbol | Type | Location | Role |
 |--------|------|----------|------|
-| DDD-Agent.md | Markdown | `00-DDD/` | Agent prompt (7 DDD tasks) |
-| agent-naming.md | Markdown | `00-DDD/` | Naming decisions |
-| thoth-ddd-plugin.md | Markdown | `.omo/plans/` | Implementation plan |
+| `loadCanonical` | fn | `src/canonical.ts` | Reads all canonical assets from `00-DDD/` |
+| `splitFrontmatter` | fn | `src/canonical.ts` | Separates YAML frontmatter from Markdown body |
+| `renderTarget` | fn | `src/targets.ts` | Canonical bundle → file set for one tool |
+| `adapterFor` | fn | `src/targets.ts` | Tool-portability preamble for non-OpenCode targets |
+| `managedBlock` | fn | `src/targets.ts` | Idempotent marker wrapper for user-owned files |
+| `mergeManaged` | fn | `src/install.ts` | Replaces only the managed block, keeps user content |
+| `thothAgents` | fn | `src/agents/thoth.ts` | OpenCode agent definitions (prompt inlined at build) |
 
 ## CONVENTIONS
 
-- **Language:** Design docs are in Spanish; code will be English
-- **Build:** `bun build src/index.ts --outdir dist --target node --format esm`
-- **Test:** `node --test test/` (or `bun test test/`)
-- **Typecheck:** `tsc --noEmit`
-- **Plugin hook:** Config hook MERGES agent into `config.agent` (never replaces — built-in agents must survive)
-- **Prompt import:** `?raw` import (NOT template literal — source has 9 backticks)
+- **Canonical language:** English (v2). Spanish v1 is archived for reference only.
+- **Build:** `bun build src/index.ts src/cli.ts --outdir dist --target node --format esm`
+- **Test:** `bun test test/`; **Typecheck:** `tsc --noEmit`
+- **Prompt import:** ES import attributes `with { type: "text" }` — NOT `?raw` (bun could not
+  resolve `?raw` for paths outside `src/`), and NOT a template literal (the prompt has backticks).
+- **Plugin hook:** `config` hook MERGES agents into `config.agent`; never replaces.
+- **Delivery modes:** full prompt for OpenCode/Claude Code/Antigravity; gateway + generated
+  bundle for Codex/Gemini CLI/Copilot/Cursor (30k / 32 KiB / 500-line limits).
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-- **NEVER** replace `config.agent` wholesale — must spread+merge or built-in agents (plan/build/general/explore) disappear
-- **NEVER** embed prompt as template literal — the source file contains backticks that break compilation
-- **NEVER** translate or edit the DDD-Agent.md prompt — byte-identical copy into `src/agents/thoth-prompt.md`
-- **NEVER** add runtime dependencies beyond `@opencode-ai/plugin`
-- **NEVER** modify oh-my-opencode, oh-my-openagent.json, or any other plugin's files
-- **NEVER** use `--pure` flag (disables plugins) in smoke tests
-- **NEVER** commit `.env*`, `node_modules/`, `dist/`, or `.omo/`
+- **NEVER** replace `config.agent` wholesale — built-in agents must survive.
+- **NEVER** embed the prompt as a template literal — it contains backticks.
+- **NEVER** hand-edit generated output in `generated/` or a consumer's
+  `documentation/thoth-ddd/` — change `00-DDD/` and regenerate.
+- **NEVER** overwrite a user-owned `AGENTS.md` / `GEMINI.md` / `copilot-instructions.md`;
+  use the managed block markers.
+- **NEVER** add runtime dependencies beyond `@opencode-ai/plugin`.
+- **NEVER** modify oh-my-opencode, `oh-my-openagent.json`, or other plugins' files.
+- **NEVER** use `--pure` in smoke tests (it disables plugins).
+- **NEVER** commit `.env*`, `node_modules/`, `dist/`, `generated/`, or `.omo/`.
 
 ## UNIQUE STYLES
 
-- Agent color: `#D4A017` (Thoth gold)
-- Agent mode: `"all"` (TAB-visible + subagent-usable)
-- Default model: `opencode/big-pickle`
-- Config override path: `~/.config/opencode/thoth-ddd.jsonc`
+- Thoth color `#D4A017` (gold); `opsx-scribe` color `#8E44AD` (purple)
+- OpenCode mode: `all` for Thoth, `subagent` for `opsx-scribe`
+- Canonical default model in frontmatter: `opencode-go/qwen3.7-plus`
+- Config override: `~/.config/opencode/thoth-ddd.jsonc`
 
 ## COMMANDS
 
 ```bash
-bun run build      # bun build src/index.ts --outdir dist --target node --format esm
-bun run typecheck  # tsc --noEmit
-bun test test/     # node:test unit suite
+bun install
+bun run build       # dist/index.js + dist/cli.js
+bun run typecheck
+bun test test/
+bun run generate    # sample output for all 7 tools -> generated/
+bun run doctor      # canonical vs ~/.config/opencode drift + size gates
+node dist/cli.js install claude-code --target /path/to/repo
+node dist/cli.js install codex --target /path/to/repo --dry-run
 ```
 
 ## NOTES
 
-- Plugin registers in observatorio-educativo's `opencode.json` via absolute path (not npm name)
-- The work plan at `.omo/plans/thoth-ddd-plugin.md` has 10 implementation todos with full acceptance criteria
-- `00-DDD/DDD-Agent.md` is the canonical agent prompt — any changes to agent behavior start there
+- `~/.config/opencode` (repo `MacGyver98/opencode-config`) was the de-facto source until
+  2026-11-22. This repo is now canonical; `bun run doctor` detects future drift.
+- Re-export changes in `00-DDD/` must be followed by a re-sync of any installed target.
+- The old plan at `.omo/plans/thoth-ddd-plugin.md` describes v2 OpenCode-only work; it is
+  superseded by `docs/PLAN-v3.md`.
