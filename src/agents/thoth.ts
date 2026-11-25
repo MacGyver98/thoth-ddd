@@ -3,7 +3,6 @@
  * The `?raw` imports are inlined by bun, so dist/index.js is self-contained.
  */
 import thothRaw from "../../00-DDD/DDD-Agent.md" with { type: "text" };
-import opsxRaw from "../../00-DDD/agents/opsx-scribe.md" with { type: "text" };
 import { frontmatterValue, splitFrontmatter } from "../canonical.js";
 import type { Config } from "@opencode-ai/plugin";
 import type { PluginConfig } from "../config.js";
@@ -11,10 +10,8 @@ import type { PluginConfig } from "../config.js";
 type AgentConfig = NonNullable<Config["agent"]>[string];
 
 export const THOTH_AGENT_NAME = "thoth-domain-scribe";
-export const OPSX_AGENT_NAME = "opsx-scribe";
 
 const thoth = splitFrontmatter(thothRaw);
-const opsx = splitFrontmatter(opsxRaw);
 
 /** Agents injected by the plugin. Keyed by OpenCode agent id. */
 export function thothAgents(config: PluginConfig = {}): Record<string, AgentConfig> {
@@ -39,14 +36,6 @@ export function thothAgents(config: PluginConfig = {}): Record<string, AgentConf
         },
         external_directory: "ask",
       },
-    },
-    [OPSX_AGENT_NAME]: {
-      description: frontmatterValue(opsx.frontmatter, "description"),
-      model: config.agentModel ?? frontmatterValue(opsx.frontmatter, "model"),
-      mode: "subagent",
-      color: "#8E44AD",
-      prompt: opsx.body,
-      permission: { edit: "allow", bash: "allow" },
     },
   };
 }

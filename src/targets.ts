@@ -93,11 +93,9 @@ export function adapterFor(tool: ToolId, bundlePath: string): string {
     "",
     `The canonical Thoth prompt was authored for OpenCode. Translate tool-specific calls as follows; never wait for a tool that does not exist in this environment.`,
     "",
-    `- \`skill(name="opsx-<command>")\` → load that \`opsx-<command>\` skill/command using this tool's native mechanism. Sources: \`${bp}/commands/\` and \`${bp}/skills/\`.`,
-    `- \`subagent(agent="opsx-scribe", ...)\` → delegate to the \`opsx-scribe\` agent/profile when this tool supports subagents. Otherwise execute that role inline as a separate focused step and still emit its \`## RESULT\` block.`,
     `- \`task(category="visual-engineering")\` / \`task(category="quick")\` → switch to an equivalent general-purpose agent if available; otherwise continue inline.`,
     `- \`bash\`, \`grep\`, \`glob\` → the equivalent shell, search and file-discovery tools of this environment.`,
-    `- Frontmatter permissions are advisory here: still restrict Thoth edits to \`00-DDD/**\`, \`documentation/**\` and \`openspec/**\`, and \`opsx-scribe\` edits to \`openspec/**\`.`,
+    `- Frontmatter permissions are advisory here: still restrict Thoth edits to \`00-DDD/**\` and \`documentation/**\`.`,
     `- The mandatory target layout is defined in \`${bp}/LAYOUT.md\`.`,
   ].join("\n");
 }
@@ -115,8 +113,6 @@ function gatewayFor(tool: ToolId, bundlePath: string): string {
     `You are **Thoth — DDD Domain Scribe**, installed by thoth-ddd.`,
     "",
     loadLine,
-    "",
-    `The SPEC executor is \`opsx-scribe\`; its prompt is at \`${bp}/OPSX-SCRIBE.md\`. All OpenSpec work must be delegated to it (or executed inline with the same scope limits when subagents are unavailable).`,
     "",
     adapter,
   ].join("\n");
@@ -138,10 +134,6 @@ function bundleFiles(
       content: `${header("00-DDD/DDD-Agent.md")}\n\n${adapter ? adapter + "\n\n" : ""}${bundle.thoth.body}`,
     },
     {
-      path: p("OPSX-SCRIBE.md"),
-      content: `${header("00-DDD/agents/opsx-scribe.md")}\n\n${adapter ? adapter + "\n\n" : ""}${bundle.opsx.body}`,
-    },
-    {
       path: p("LAYOUT.md"),
       content: bundle.layout,
     },
@@ -156,20 +148,11 @@ function bundleFiles(
         "| File | Purpose |",
         "| --- | --- |",
         "| `THOTH.md` | Full Thoth system prompt |",
-        "| `OPSX-SCRIBE.md` | Full SPEC-executor sub-agent prompt |",
-        "| `commands/` | The five `opsx-*` commands |",
-        "| `skills/` | The four OpenSpec skills |",
         "| `LAYOUT.md` | Mandatory target-repository layout contract |",
       ].join("\n"),
     },
   ];
 
-  for (const command of bundle.commands) {
-    files.push({ path: p("commands", `${command.id}.md`), content: command.raw });
-  }
-  for (const skill of bundle.skills) {
-    files.push({ path: p("skills", skill.id, "SKILL.md"), content: skill.raw });
-  }
   return files;
 }
 
@@ -228,18 +211,6 @@ function copilotAgent(doc: FrontmatterDoc, gateway: string): string {
   ].join("\n");
 }
 
-/** Convert an OpenCode command into a portable Agent Skills SKILL.md. */
-function commandAsSkill(doc: FrontmatterDoc): string {
-  return [
-    "---",
-    `name: ${doc.id}`,
-    `description: ${yamlQ(description(doc))}`,
-    "---",
-    "",
-    doc.body.trim(),
-  ].join("\n");
-}
-
 /** Render the complete file set for one tool. */
 export function renderTarget(
   tool: ToolId,
@@ -254,20 +225,7 @@ export function renderTarget(
     case "opencode": {
       files.unshift(
         { path: ".opencode/agents/thoth-domain-scribe.md", content: bundle.thoth.raw },
-        { path: ".opencode/agents/opsx-scribe.md", content: bundle.opsx.raw },
       );
-      for (const command of bundle.commands) {
-        files.push({
-          path: `.opencode/commands/${command.id}.md`,
-          content: command.raw,
-        });
-      }
-      for (const skill of bundle.skills) {
-        files.push({
-          path: `.opencode/skills/${skill.id}/SKILL.md`,
-          content: skill.raw,
-        });
-      }
       break;
     }
 
@@ -277,23 +235,7 @@ export function renderTarget(
           path: ".claude/agents/thoth-domain-scribe.md",
           content: claudeAgent(bundle.thoth, adapter + "\n\n" + bundle.thoth.body, "yellow"),
         },
-        {
-          path: ".claude/agents/opsx-scribe.md",
-          content: claudeAgent(bundle.opsx, adapter + "\n\n" + bundle.opsx.body, "purple"),
-        },
       );
-      for (const command of bundle.commands) {
-        files.push({
-          path: `.claude/commands/${command.id}.md`,
-          content: command.raw,
-        });
-      }
-      for (const skill of bundle.skills) {
-        files.push({
-          path: `.claude/skills/${skill.id}/SKILL.md`,
-          content: skill.raw,
-        });
-      }
       break;
     }
 
@@ -308,37 +250,17 @@ export function renderTarget(
           ),
         },
         {
-          path: ".agents/agents/opsx-scribe.md",
-          content: antigravityAgent(
-            bundle.opsx,
-            adapter + "\n\n" + bundle.opsx.body,
-            false,
-          ),
-        },
-        {
           path: ".agents/rules/thoth-ddd-layout.md",
           content: [
             "---",
             "trigger: model_decision",
-            `description: ${yamlQ("Mandatory repository layout and write-scope rules for the Thoth DDD agent. Use when creating DDD, ADR or OpenSpec artifacts.")}`,
+            `description: ${yamlQ("Mandatory repository layout and write-scope rules for the Thoth DDD agent. Use when creating DDD or ADR artifacts.")}`,
             "---",
             "",
             bundle.layout,
           ].join("\n"),
         },
       );
-      for (const command of bundle.commands) {
-        files.push({
-          path: `.agents/skills/${command.id}/SKILL.md`,
-          content: commandAsSkill(command),
-        });
-      }
-      for (const skill of bundle.skills) {
-        files.push({
-          path: `.agents/skills/${skill.id}/SKILL.md`,
-          content: skill.raw,
-        });
-      }
       break;
     }
 
@@ -351,12 +273,6 @@ export function renderTarget(
           managedBlock(gatewayFor("codex", bundlePath)),
         ].join("\n"),
       });
-      for (const skill of bundle.skills) {
-        files.push({
-          path: `.agents/skills/${skill.id}/SKILL.md`,
-          content: skill.raw,
-        });
-      }
       break;
     }
 
@@ -380,21 +296,6 @@ export function renderTarget(
           content: copilotAgent(bundle.thoth, gateway),
         },
         {
-          path: ".github/agents/opsx-scribe.agent.md",
-          content: [
-            "---",
-            'name: "opsx-scribe"',
-            `description: ${yamlQ(description(bundle.opsx))}`,
-            'tools: ["*"]',
-            "include-custom-instructions: true",
-            "---",
-            "",
-            `You are the SPEC executor. Before acting, read \`${bundlePath.replace(/\\/g, "/")}/OPSX-SCRIBE.md\` in full and follow it verbatim.`,
-            "",
-            adapter,
-          ].join("\n"),
-        },
-        {
           path: ".github/copilot-instructions.md",
           content: ["# Repository instructions", "", managedBlock(gateway)].join("\n"),
         },
@@ -407,7 +308,7 @@ export function renderTarget(
         path: ".cursor/rules/thoth-ddd.mdc",
         content: [
           "---",
-          `description: ${yamlQ("Thoth — DDD Domain Scribe. Use for DDD design, ADR governance, ubiquitous language, aggregates and OpenSpec change work.")}`,
+          `description: ${yamlQ("Thoth — DDD Domain Scribe. Use for DDD design, ADR governance, ubiquitous language and aggregates.")}`,
           "alwaysApply: false",
           "---",
           "",

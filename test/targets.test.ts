@@ -17,8 +17,7 @@ test("canonical Thoth prompt keeps the working config frontmatter and body", asy
   assert.match(frontmatter, /mode: all/);
   assert.match(frontmatter, /#D4A017/);
   assert.match(body, /Document governance model/);
-  assert.match(body, /opsx-scribe/);
-  assert.ok(body.length > 40_000, "v2 prompt is the expanded English version");
+  assert.ok(body.length > 35_000, "v2 prompt is the expanded English version");
 });
 
 test("all seven targets render non-empty, duplicate-free file sets", async () => {
@@ -51,21 +50,11 @@ test("full-prompt targets embed the canonical body verbatim", async () => {
   }
 });
 
-test("OpenCode target preserves canonical bytes for agents, commands and skills", async () => {
+test("OpenCode target preserves canonical bytes for the agent", async () => {
   const bundle = await loadCanonical(CANONICAL_ROOT);
   const files = renderTarget("opencode", bundle);
   const thoth = files.find((f) => f.path === ".opencode/agents/thoth-domain-scribe.md");
   assert.equal(thoth?.content, bundle.thoth.raw);
-  for (const command of bundle.commands) {
-    const file = files.find((f) => f.path === `.opencode/commands/${command.id}.md`);
-    assert.equal(file?.content, command.raw);
-  }
-  for (const skill of bundle.skills) {
-    const file = files.find(
-      (f) => f.path === `.opencode/skills/${skill.id}/SKILL.md`,
-    );
-    assert.equal(file?.content, skill.raw);
-  }
 });
 
 test("size-capped targets use a gateway and ship the full prompt bundle", async () => {
@@ -121,7 +110,6 @@ test("generated prompts carry a tool adapter outside OpenCode", async () => {
     (f) => f.path === ".claude/agents/thoth-domain-scribe.md",
   )!;
   assert.match(agent.content, /## Tool adapter — Claude Code/);
-  assert.match(agent.content, /subagent\(agent="opsx-scribe"/);
   assert.match(agent.content, /^name: thoth-domain-scribe$/m);
   assert.match(agent.content, /^color: yellow$/m);
 

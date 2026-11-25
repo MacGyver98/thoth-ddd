@@ -5,7 +5,7 @@ import { loadPluginConfig } from "./config.js";
 /**
  * thoth-ddd OpenCode plugin.
  *
- * The `config` hook MERGES the two agents into `config.agent` — it never
+ * The `config` hook MERGES the agent into `config.agent` — it never
  * replaces the object, so built-in agents (plan/build/general/explore) and
  * agents contributed by other plugins survive.
  */

@@ -5,7 +5,7 @@
  * Nothing in this module writes files; it only reads and normalizes the
  * canonical markdown assets.
  */
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 export interface FrontmatterDoc {
@@ -24,9 +24,6 @@ export interface FrontmatterDoc {
 export interface CanonicalBundle {
   root: string;
   thoth: FrontmatterDoc;
-  opsx: FrontmatterDoc;
-  commands: FrontmatterDoc[];
-  skills: Array<{ id: string; source: string; raw: string }>;
   /** Raw layout contract (`00-DDD/LAYOUT.md`). */
   layout: string;
 }
@@ -66,36 +63,9 @@ async function loadDoc(source: string, id: string): Promise<FrontmatterDoc> {
 export async function loadCanonical(root?: string): Promise<CanonicalBundle> {
   const base = root ?? join(process.cwd(), "00-DDD");
 
-  const commandDir = join(base, "commands");
-  const skillDir = join(base, "skills");
-
-  const commandFiles = (await readdir(commandDir))
-    .filter((name) => name.endsWith(".md"))
-    .sort();
-  const skillIds = (await readdir(skillDir, { withFileTypes: true }))
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
-
-  const commands = await Promise.all(
-    commandFiles.map((file) =>
-      loadDoc(join(commandDir, file), file.replace(/\.md$/, "")),
-    ),
-  );
-
-  const skills = await Promise.all(
-    skillIds.map(async (id) => {
-      const source = join(skillDir, id, "SKILL.md");
-      return { id, source, raw: await readFile(source, "utf8") };
-    }),
-  );
-
   return {
     root: base,
     thoth: await loadDoc(join(base, "DDD-Agent.md"), "thoth-domain-scribe"),
-    opsx: await loadDoc(join(base, "agents", "opsx-scribe.md"), "opsx-scribe"),
-    commands,
-    skills,
     layout: await readFile(join(base, "LAYOUT.md"), "utf8"),
   };
 }
