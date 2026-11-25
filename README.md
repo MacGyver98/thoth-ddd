@@ -72,15 +72,17 @@ Add to `opencode.json`:
 }
 ```
 
-Or point at a local checkout:
+Or point at a local checkout from the consuming project:
 
 ```json
 {
-  "plugins": ["./dist"]
+  "plugins": ["./path/to/thoth-ddd/dist"]
 }
 ```
 
-The plugin's `config` hook **merges** the two agents into `config.agent`, so built-in agents
+This repository intentionally has **no project-level `opencode.json`**; OpenCode is driven by
+your local/global configuration. The plugin's `config` hook **merges** the two agents into
+`config.agent`, so built-in agents
 and other plugins are never displaced.
 
 Override the model in `~/.config/opencode/thoth-ddd.jsonc` (see

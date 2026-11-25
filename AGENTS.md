@@ -113,6 +113,8 @@ node dist/cli.js install codex --target /path/to/repo --dry-run
 
 - `~/.config/opencode` (repo `MacGyver98/opencode-config`) was the de-facto source until
   2026-11-22. This repo is now canonical; `bun run doctor` detects future drift.
+- There is intentionally **no project-level `opencode.json`** in this repo — OpenCode uses
+  the local/global configuration. Do not re-add one without an explicit decision.
 - Re-export changes in `00-DDD/` must be followed by a re-sync of any installed target.
 - The old plan at `.omo/plans/thoth-ddd-plugin.md` describes v2 OpenCode-only work; it is
   superseded by `docs/PLAN-v3.md`.

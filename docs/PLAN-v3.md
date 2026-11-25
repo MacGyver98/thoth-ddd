@@ -56,7 +56,7 @@ generated/                       # gitignored sample output of all targets
 - [x] T5 Tests: byte fidelity, all targets, no file exceeds tool limit, idempotent installer
 - [x] T6 Build + typecheck + tests green
 - [x] T7 Docs: README, TARGETS.md, AGENTS.md, package.json bin/files
-- [x] T8 Generate sample output; self-host OpenCode plugin in this repo; final verification
+- [x] T8 Generate sample output; no project-level `opencode.json` (local config used); final verification
 
 ## Verification gates
 
