@@ -8,8 +8,8 @@
   // Only the model override is supported. There is no agent_order key.
   "agents": {
     "thoth-domain-scribe": {
-      // Swap in any model you want Thoth to use, e.g. "opencode/big-pickle".
-      "model": "opencode/big-pickle"
+      // Swap in any model you want Thoth to use; this matches the canonical default.
+      "model": "opencode-go/qwen3.7-plus"
     }
   }
 }

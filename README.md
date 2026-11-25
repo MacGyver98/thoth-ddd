@@ -91,7 +91,7 @@ Override the model in `~/.config/opencode/thoth-ddd.jsonc` (see
 ```jsonc
 {
   "agents": {
-    "thoth-domain-scribe": { "model": "opencode/big-pickle" }
+    "thoth-domain-scribe": { "model": "opencode-go/qwen3.7-plus" }
   }
 }
 ```
