@@ -3,4 +3,6 @@ dist/
 .env*
 .omo/
 .opencode/node_modules/
+.opencode/commands/
+.opencode/skills/
 generated/
