@@ -8,7 +8,7 @@
 **thoth-ddd** publishes one agent — **Thoth — DDD Domain Scribe** — to multiple coding
 tools from a single canonical source in `00-DDD/`. Thoth transforms a free-form business
 description into governed DDD artifacts (strategic/tactical models, ubiquitous language,
-aggregates, ADRs, OpenSpec changes and user journeys).
+aggregates, ADRs and user journeys).
 
 **Stack:** TypeScript (ESM), bun build, `@opencode-ai/plugin` SDK, `node:test`
 
@@ -20,10 +20,7 @@ thoth-ddd/
 │   ├── DDD-Agent.md             # Thoth master prompt (44 KB, frontmatter + body)
 │   ├── LAYOUT.md                # Mandatory target-repo layout contract
 │   ├── agent-naming.md          # Naming research → Thoth selected
-│   ├── legacy/DDD-Agent.v1.es.md# Archived Spanish v1 (do not use)
-│   ├── agents/opsx-scribe.md    # SPEC executor sub-agent prompt
-│   ├── commands/opsx-*.md       # 5 canonical OpenSpec commands
-│   └── skills/openspec-*/SKILL.md # 4 canonical skills
+│   └── legacy/DDD-Agent.v1.es.md# Archived Spanish v1 (do not use)
 ├── src/
 │   ├── index.ts                 # PluginModule: merging `config` hook
 │   ├── config.ts                # thoth-ddd.jsonc loader (model override)
@@ -46,8 +43,6 @@ thoth-ddd/
 |------|----------|-------|
 | Agent behavior | `00-DDD/DDD-Agent.md` | English v2; imported from the working `~/.config/opencode` agent |
 | Layout contract | `00-DDD/LAYOUT.md` | Hardcoded paths adopters must provide |
-| SPEC executor | `00-DDD/agents/opsx-scribe.md` | Only agent allowed to touch `openspec/` |
-| Commands / skills | `00-DDD/commands/`, `00-DDD/skills/` | Canonical OpenSpec lifecycle assets |
 | Generator | `src/targets.ts` | No I/O; returns `{path, content}` per tool |
 | Installer | `src/install.ts` | Merge-safe, idempotent |
 | Plugin entry | `src/index.ts` | `PluginModule.server` with merging config hook |
@@ -91,8 +86,8 @@ thoth-ddd/
 
 ## UNIQUE STYLES
 
-- Thoth color `#D4A017` (gold); `opsx-scribe` color `#8E44AD` (purple)
-- OpenCode mode: `all` for Thoth, `subagent` for `opsx-scribe`
+- Thoth color `#D4A017` (gold)
+- OpenCode mode: `all` for Thoth
 - Canonical default model in frontmatter: `opencode-go/qwen3.7-plus`
 - Config override: `~/.config/opencode/thoth-ddd.jsonc`
 

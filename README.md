@@ -4,7 +4,7 @@
 
 `thoth-ddd` publishes **Thoth — DDD Domain Scribe**: an agent that turns a free-form
 business description into governed DDD artifacts — bounded contexts, ubiquitous language,
-aggregates, invariants, ADRs, OpenSpec changes and user journeys.
+aggregates, invariants, ADRs and user journeys.
 
 The canonical sources live in [`00-DDD/`](00-DDD/). Everything else is generated from them.
 
@@ -12,18 +12,15 @@ The canonical sources live in [`00-DDD/`](00-DDD/). Everything else is generated
 
 | Asset | Purpose |
 | --- | --- |
-| `thoth-domain-scribe` | Main agent. Strategic (7 tasks) and tactical (6 tasks) modes, Phase 0.5 integrity audit, DDD→ADR→SPEC→CODE cascade, V.2 anti-proliferation governance. |
-| `opsx-scribe` | Sub-agent with exclusive ownership of the OpenSpec lifecycle. |
-| 5 `opsx-*` commands | `explore`, `propose`, `apply`, `orchestrate`, `archive`. |
-| 4 OpenSpec skills | `openspec-explore`, `openspec-propose`, `openspec-apply-change`, `openspec-archive-change`. |
+| `thoth-domain-scribe` | Main agent. Strategic (7 tasks) and tactical (6 tasks) modes, Phase 0.5 integrity audit, DDD→ADR→CODE cascade, V.2 anti-proliferation governance. |
 
 ## Supported tools
 
 | Tool | Mode | Install target |
 | --- | --- | --- |
-| OpenCode | native agent + plugin | `.opencode/agents/`, `.opencode/commands/`, `.opencode/skills/` |
-| Claude Code | native subagents | `.claude/agents/`, `.claude/commands/`, `.claude/skills/` |
-| Google Antigravity | native agents + rules + skills | `.agents/` |
+| OpenCode | native agent + plugin | `.opencode/agents/` |
+| Claude Code | native subagents | `.claude/agents/` |
+| Google Antigravity | native agents + rules | `.agents/` |
 | OpenAI Codex | gateway | `AGENTS.md` + generated bundle |
 | Gemini CLI | gateway + `@` import | `GEMINI.md` + generated bundle |
 | GitHub Copilot | custom agent profiles | `.github/agents/` + `copilot-instructions.md` |

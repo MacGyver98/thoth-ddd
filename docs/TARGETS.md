@@ -11,7 +11,7 @@ inspect every output tree under `generated/`, or `thoth-ddd install <tool> --tar
 | **Gateway + bundle** | Codex, Gemini CLI, Copilot, Cursor | Copilot caps custom-agent prompts at 30,000 chars; Codex caps `AGENTS.md` at 32 KiB; Cursor recommends rules under 500 lines. The native file is short and points to `documentation/thoth-ddd/THOTH.md`. |
 
 Every non-OpenCode prompt gets an **adapter** preamble mapping:
-`skill(name="opsx-X")`, `subagent(agent="opsx-scribe", …)`, `task(category=…)`, `bash`/`grep`/`glob`
+`task(category=…)`, `bash`/`grep`/`glob`
 and the permission model to generic equivalents.
 
 ## OpenCode
@@ -20,14 +20,12 @@ and the permission model to generic equivalents.
 thoth-ddd install opencode --target /path/to/repo
 ```
 
-Writes `.opencode/agents/{thoth-domain-scribe,opsx-scribe}.md`, five
-`.opencode/commands/opsx-*.md`, four `.opencode/skills/openspec-*/SKILL.md`, plus the bundle.
+Writes `.opencode/agents/thoth-domain-scribe.md` plus the bundle.
 
-Alternatively install the **plugin** (`plugins: ["thoth-ddd"]`) — it injects the two agents
+Alternatively install the **plugin** (`plugins: ["thoth-ddd"]`) — it injects the agent
 through a merging config hook. Do not use both mechanisms in the same project (duplicate ids).
 
-**Reference:** https://opencode.ai/docs/agents, https://opencode.ai/docs/commands,
-https://opencode.ai/docs/skills
+**Reference:** https://opencode.ai/docs/agents
 
 ## Claude Code
 
@@ -35,15 +33,14 @@ https://opencode.ai/docs/skills
 thoth-ddd install claude-code --target /path/to/repo
 ```
 
-Writes `.claude/agents/{thoth-domain-scribe,opsx-scribe}.md` (frontmatter translated to
-`name`, `description`, `model: inherit`, `color`, `tools`), `.claude/commands/opsx-*.md`
-and `.claude/skills/openspec-*/SKILL.md`.
+Writes `.claude/agents/thoth-domain-scribe.md` (frontmatter translated to
+`name`, `description`, `model: inherit`, `color`, `tools`).
 
 Notes:
-- `color` uses a supported name (`yellow` / `purple`), not the canonical hex value.
+- `color` uses a supported name (`yellow`), not the canonical hex value.
 - Claude Code does not support path-scoped tool permissions; the prompt enforces the write scope.
 
-**Reference:** https://code.claude.com/docs/en/sub-agents, https://code.claude.com/docs/en/skills
+**Reference:** https://code.claude.com/docs/en/sub-agents
 
 ## Google Antigravity
 
@@ -51,15 +48,12 @@ Notes:
 thoth-ddd install antigravity --target /path/to/repo
 ```
 
-Writes `.agents/agents/*.md` (frontmatter: `name`, `description`, `model`, `mainAgent`,
-`subagent`, `commandExecutionPolicy`, `tools`), `.agents/rules/thoth-ddd-layout.md`
-(`trigger: model_decision`) and skills under `.agents/skills/`. The five commands are also
-emitted as skills so `/opsx-*` slash commands are available.
-
-Antigravity scans one level deep, so all skill folders sit directly under `.agents/skills/`.
+Writes `.agents/agents/thoth-domain-scribe.md` (frontmatter: `name`, `description`, `model`, `mainAgent`,
+`subagent`, `commandExecutionPolicy`, `tools`) and `.agents/rules/thoth-ddd-layout.md`
+(`trigger: model_decision`).
 
 **Reference:** https://antigravity.google/docs/customization-discovery/,
-https://antigravity.google/docs/subagents/, https://antigravity.google/docs/skills/
+https://antigravity.google/docs/subagents/
 
 ## OpenAI Codex
 
@@ -94,12 +88,11 @@ pointer, not a copy, so regenerate the bundle after editing canonical sources.
 thoth-ddd install copilot --target /path/to/repo
 ```
 
-Writes `.github/agents/thoth-domain-scribe.agent.md` and
-`.github/agents/opsx-scribe.agent.md` (custom agent profiles) plus a managed block in
-`.github/copilot-instructions.md`. Profiles use `include-custom-instructions: true`.
+Writes `.github/agents/thoth-domain-scribe.agent.md` (custom agent profile) plus a managed block in
+`.github/copilot-instructions.md`. The profile uses `include-custom-instructions: true`.
 
-The profiles are gateways: the 30,000-character prompt cap makes inlining the 44 KB prompt
-impossible. Both profiles instruct the agent to read `documentation/thoth-ddd/THOTH.md`.
+The profile is a gateway: the 30,000-character prompt cap makes inlining the 44 KB prompt
+impossible. The profile instructs the agent to read `documentation/thoth-ddd/THOTH.md`.
 
 **Reference:** https://docs.github.com/en/copilot/reference/custom-agents-configuration
 
@@ -125,8 +118,8 @@ thoth-ddd install claude-code --scope global --target ~
 
 Native files go to the tool's user-level config directory; the bundle is written to
 `~/.config/thoth-ddd/bundle` and referenced by absolute path. Global installation does not
-create the target repository layout — each repo you work on still needs `00-DDD/`,
-`documentation/` and `openspec/`.
+create the target repository layout — each repo you work on still needs `00-DDD/` and
+`documentation/`.
 
 ## Safety rules
 
